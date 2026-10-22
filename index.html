@@ -1,0 +1,46 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Westher Site</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <header>
+        <div class="logo"><h1>Weather Forcast</h1></div>
+    </header>
+    <main class="main">
+        <article  class="main-content">
+            <section class="Search-button">
+                <h2 >Find a city</h2>
+                <h3 >Enter a city name,choose the correct location,<br>and view its current weather and forecast.</h3>
+                <label for="city">City name</label>
+                <div class="button">
+                    <input type="text" id="city" placeholder="For example, Kristianstad">
+                    <button class="submit-button" type="submit">Search</button>
+                </div>
+
+            </section>
+            <section class="location-result">
+                <div class="match-result"></div>
+                <div class="total-matches"></div>
+            </section>
+            <section>
+                <div class="weather-result">
+                    <div class="today-forecast">
+
+                    </div>
+                    <div class="future-result ">
+
+                    </div>
+                </div>
+            </section>
+        </article>
+
+    </main>
+    <footer class="footer">
+        <h2>Weather Data provided by Open-Meteo</h2>
+    </footer>
+</body>
+</html>
