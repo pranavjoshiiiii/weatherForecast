@@ -1,47 +1,56 @@
-
-const searchButton = document.querySelector(".submit-button");
+const form = document.querySelector("form");
 const searchBar = document.querySelector("#city");
-async function handleSearch() {
-    const userInput = searchBar.value.trim();
-    if (validateCity(userInput)) {
-    renderLocation(await getLocation());
-  } else {
+form.addEventListener("submit", handleSearch);
+
+async function handleSearch(event) {
+  event.preventDefault();
+  clearWeather();
+  document.querySelector(".total-matches").replaceChildren();
+  const userInput = searchBar.value.trim();
+  if (!validateCity(userInput)) {
     showMessage("Enter a valid input");
+    return;
   }
-
+  showMessage("Loading locations...");
+  const data = await getLocation(userInput);
+  if (data === null) {
+    showMessage(
+      "Could not load locations. Check your connection and try again.",
+    );
+  } else {
+    renderLocation(data.results);
+  }
 }
-searchBar.addEventListener("keydown",(event) => {
- if(event.key ==="Enter"){
-    handleSearch();
- }
-});
-searchButton.addEventListener("click",handleSearch);
+function clearWeather() {
+  document.querySelector(".today-forecast").replaceChildren();
+  document.querySelector(".future-result").replaceChildren();
+}
+function makeParagraph(text) {
+  const paragraph = document.createElement("p");
+  paragraph.textContent = text;
+  return paragraph;
+}
 
-function showMessage(text) {  
-  const container = document.querySelector(".match-result");
+function showMessage(text, selector = ".match-result") {
+  const container = document.querySelector(selector);
   container.replaceChildren();
-
-  const message = document.createElement("p");
-  message.textContent = text;
-  container.append(message);
+  container.append(makeParagraph(text));
 }
 
 function validateCity(city) {
-  return city && !/\d/.test(city);
+  return city !== "" && !/\d/.test(city);
 }
 
-async function getLocation() {
-  const userInput = searchBar.value.trim();
+async function getLocation(city) {
   try {
     const response = await fetch(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(userInput)}&count=5&language=en&format=json`,
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=5&language=en&format=json`,
     );
-    if (!response.ok) throw new error("HTTP " + response.status);
-    const data = await response.json();
-    return data.results ?? [];
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    return await response.json();
   } catch (error) {
-    console.error("Location");
-    return [];
+    console.error(error);
+    return null;
   }
 }
 
@@ -50,84 +59,133 @@ function renderLocation(locations) {
   const totalMatches = document.querySelector(".total-matches");
   results.replaceChildren();
   totalMatches.replaceChildren();
+  let textDisplay = makeParagraph(`${locations.length} New Result Found`);
   if (locations.length > 0) {
     locations.forEach((key) => {
-      const location = document.createElement("button");
-      const p1 = document.createElement("p");
-      const p2 = document.createElement("p");
-      location.classList.add("location-display");
-      p1.classList.add("match-country");
-      p2.classList.add("match-admin1");
-      location.textContent = key.name;
-      p1.textContent = key.country;
-      p2.textContent = key.admin1;
-      location.addEventListener("click", async (event) => {
+      const button = document.createElement("button");
+      button.textContent = key.name;
+      const country = makeParagraph(key.country);
+      const admin1 = makeParagraph(key.admin1);
+
+      button.classList.add("location-display");
+      country.classList.add("match-country");
+      admin1.classList.add("match-admin1");
+
+      button.addEventListener("click", async () => {
+        document
+          .querySelectorAll(".location-display")
+          .forEach((other) => other.classList.remove("selected"));
+        button.classList.add("selected");
+        clearWeather();
+        showMessage("Loading weather...", ".today-forecast");
         const weatherData = await getWeather(key.latitude, key.longitude);
-        renderWeather(weatherData);
+        if (weatherData === null) {
+          showMessage(
+            "Something went wrong while fetching the weather data.Try again..!!",
+            ".today-forecast",
+          );
+        } else {
+          renderWeather(processWeather(weatherData), key);
+        }
       });
-      location.append(p1, p2);
-      results.appendChild(location);
+      if (key.admin1) {
+        button.append(admin1);
+      }
+      button.append(country);
+      results.appendChild(button);
     });
-    const textDisplay = document.createElement("h3");
-    textDisplay.textContent =`${locations.length} New Result Found`;
+    totalMatches.append(textDisplay);
+  } else {
+    textDisplay = makeParagraph(`No result found for this location try again.`);
     totalMatches.append(textDisplay);
   }
+}
 
-  async function getWeather(latitude, longitude) {
-    try {
-      const response = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(latitude)}&longitude=${encodeURIComponent(longitude)}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`,
-      );
-      if (!response.ok) throw new error("HTTP" + response.status);
-      const weatherData = await response.json();
-      return weatherData ?? [];
-    } catch (error) {
-      console.error();
-      return [];
-    }
+async function getWeather(latitude, longitude) {
+  try {
+    const response = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(latitude)}&longitude=${encodeURIComponent(longitude)}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`,
+    );
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    return await response.json();
+  } catch (error) {
+    console.error(error);
+    return null;
   }
+}
+function processWeather(weather) {
+  return {
+    today: {
+      date: weather.daily.time[0],
+      temperature: weather.current.temperature_2m,
+      apparentTemperature: weather.current.apparent_temperature,
+      windSpeed: weather.current.wind_speed_10m,
+      condition: getWeatherDescription(weather.current.weather_code),
+    },
+    forecast: [1, 2, 3].map((i) => ({
+      date: weather.daily.time[i],
+      max: weather.daily.temperature_2m_max[i],
+      min: weather.daily.temperature_2m_min[i],
+      condition: getWeatherDescription(weather.daily.weather_code[i]),
+    })),
+  };
+}
 
-  function renderWeather(weather) {
-    const weatherResult = document.querySelector(".weather-result")
-    const futureResult = document.querySelector(".future-result");
-    const todayResult =document.querySelector(".today-forecast");
-    todayResult.replaceChildren();
-    futureResult.replaceChildren();
-    const div =document.createElement("div");
-    div.classList.add("today-forecast-result");
-    const date = document.createElement("p");
-    const currentTemprature = document.createElement("p");
-    const currentApparentTemprature = document.createElement("p");
-    const windSpeed = document.createElement("p");
-    const weatherCondition = document.createElement("p");
+function renderWeather(processed, key) {
+  const futureResult = document.querySelector(".future-result");
+  const todayResult = document.querySelector(".today-forecast");
+  todayResult.replaceChildren();
+  futureResult.replaceChildren();
 
-    date.textContent = `Date : ${weather.daily.time[0]}`;
-    currentTemprature.textContent = `Current Temprature: ${weather.current.temperature_2m}`;
-    currentApparentTemprature.textContent = `Current Apparent Temprature:${weather.current.apparent_temperature}`;
-    windSpeed.textContent= `Wind Speed: ${weather.current.wind_speed_10m}`;
-    weatherCondition.textContent = `Weather Code: ${getWeatherDescription(weather.current.weather_code)};`
-    div.append(date,currentTemprature,currentApparentTemprature,windSpeed,weatherCondition);
-    todayResult.appendChild(div);
+  const selectedLocation = document.createElement("div");
+  selectedLocation.classList.add("place-title");
+  const todayTitle = makeParagraph("Today-forecast");
+  todayTitle.classList.add("section-title");
+  const futureTitle = makeParagraph("Three-Days-Forecast"); 
+  futureTitle.classList.add("section-title");
+  const locationName = makeParagraph(key.name);
+  const locationCountry = makeParagraph(key.country);
+  selectedLocation.append(locationName, locationCountry);
+  todayResult.appendChild(selectedLocation);
 
-    for(i=1;i<=3;i++){
-      const div = document.createElement("div");
-      div.classList.add("future-forecast-result");
-      const date = document.createElement("p");
-      const minTemp = document.createElement("p");
-      const maxTemp = document.createElement("p");
-      const weatherCondition = document.createElement("p");
-      date.textContent = `Date : ${weather.daily.time[i]};`;
-      maxTemp.textContent = `Maximum Temprature :${weather.daily.temperature_2m_max[i]}`;
-      minTemp.textContent = `Minimum Temprature : ${weather.daily.temperature_2m_min[i]}`;
-      weatherCondition.textContent =`Weather Condition :${weather.daily.weather_code[i]}`;
-      div.append(date,maxTemp,minTemp,weatherCondition);
-      futureResult.appendChild(div);
-    }
-
-
-    
+  const div = document.createElement("div");
+  div.classList.add("today-forecast-result");
+  const date = makeParagraph(`Date : ${processed.today.date}`);
+  const currentTemperature = makeParagraph(
+    `Current Temperature: ${processed.today.temperature} °C`,
+  );
+  const currentApparentTemperature = makeParagraph(
+    `Current Apparent Temperature:${processed.today.apparentTemperature} °C`,
+  );
+  const windSpeed = makeParagraph(
+    `Wind Speed: ${processed.today.windSpeed} km/h`,
+  );
+  const weatherCondition = makeParagraph(
+    `Weather Condition: ${processed.today.condition}`,
+  );
+  div.append(
+    date,
+    currentTemperature,
+    currentApparentTemperature,
+    windSpeed,
+    weatherCondition,
+  );
+  todayResult.appendChild(todayTitle);
+  todayResult.appendChild(div);
+  futureResult.appendChild(futureTitle);
+  for (const day of processed.forecast) {
+    const div = document.createElement("div");
+    div.classList.add("future-forecast-result");
+    div.append(
+      makeParagraph(`Date : ${day.date}`),
+      makeParagraph(`Maximum Temperature : ${day.max} °C`),
+      makeParagraph(`Minimum Temperature : ${day.min} °C`),
+      makeParagraph(`Condition : ${day.condition}`),
+    );
+    futureResult.appendChild(div);
   }
-  function getWeatherDescription(code) {
+}
+function getWeatherDescription(code) {
   if (code === 0) return "Clear sky";
   if ([1, 2, 3].includes(code)) return "Partly cloudy";
   if ([45, 48].includes(code)) return "Fog";
@@ -139,6 +197,4 @@ function renderLocation(locations) {
   if ([95, 96, 99].includes(code)) return "Thunderstorm";
 
   return "Unknown conditions";
-
-}
 }

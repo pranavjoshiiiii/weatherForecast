@@ -2,17 +2,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Westher Site</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Weather Site</title>
+    <link rel="stylesheet" href="styles.css">
     <script src="script.js" defer></script>
 </head>
 <body>
     <header>
-        <div class="logo"><h1>Weather Forcast</h1></div>
+        <div class="logo"><h1>Weather Forecast</h1></div>
     </header>
     <main class="main">
         <article  class="main-content">
-            <section class="Search-button">
+            <form>
                 <h2 >Find a city</h2>
                 <h3 >Enter a city name,choose the correct location,<br>and view its current weather and forecast.</h3>
                 <label for="city">City name</label>
@@ -21,18 +21,17 @@
                     <button class="submit-button" type="submit">Search</button>
                 </div>
 
-            </section>
+            </form>
             <section class="location-result">
                 <div class="match-result"></div>
                 <div class="total-matches"></div>
+                <div class="selected-location"></div>
             </section>
-            <section>
+            <section class="weather-section">
                 <div class="weather-result">
                     <div class="today-forecast">
-
                     </div>
-                    <div class="future-result ">
-
+                    <div class="future-result">
                     </div>
                 </div>
             </section>
