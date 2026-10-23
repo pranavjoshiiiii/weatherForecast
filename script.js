@@ -1,6 +1,5 @@
 const form = document.querySelector("form");
 const searchBar = document.querySelector("#city");
-const searchButton = document.querySelector(".submit-button");
 form.addEventListener("submit", handleSearch);
 
 async function handleSearch(event) {
@@ -40,6 +39,15 @@ function showMessage(text, selector = ".match-result") {
 
 function validateCity(city) {
   return city !== "" && !/\d/.test(city);
+}
+
+function formatDate(isoDate) {
+  return new Date(isoDate).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
 }
 
 async function getLocation(city) {
@@ -82,7 +90,7 @@ function renderLocation(locations) {
         const weatherData = await getWeather(key.latitude, key.longitude);
         if (weatherData === null) {
           showMessage(
-            "Something went wrong while fetching the weather data.Try again..!!",
+            "Something went wrong while fetching the weather data. Try again.",
             ".today-forecast",
           );
         } else {
@@ -140,9 +148,9 @@ function renderWeather(processed, key) {
 
   const selectedLocation = document.createElement("div");
   selectedLocation.classList.add("place-title");
-  const todayTitle = makeParagraph("Today-forecast");
+  const todayTitle = makeParagraph("Today forecast");
   todayTitle.classList.add("section-title");
-  const futureTitle = makeParagraph("Three-Days-Forecast"); 
+  const futureTitle = makeParagraph("Three-day forecast"); 
   futureTitle.classList.add("section-title");
   const locationName = makeParagraph(key.name);
   const locationCountry = makeParagraph(key.country);
@@ -151,7 +159,7 @@ function renderWeather(processed, key) {
 
   const div = document.createElement("div");
   div.classList.add("today-forecast-result");
-  const date = makeParagraph(`Date : ${processed.today.date}`);
+  const date = makeParagraph(`Date : ${formatDate(processed.today.date)}`);
   const currentTemperature = makeParagraph(
     `Current Temperature: ${processed.today.temperature} °C`,
   );
@@ -178,9 +186,9 @@ function renderWeather(processed, key) {
     const div = document.createElement("div");
     div.classList.add("future-forecast-result");
     div.append(
-      makeParagraph(`Date : ${day.date}`),
-      makeParagraph(`Maximum Temperature : ${day.max} °C`),
-      makeParagraph(`Minimum Temperature : ${day.min} °C`),
+      makeParagraph(`Date : ${formatDate(day.date)}`),
+      makeParagraph(`Highest : ${day.max} °C`),
+      makeParagraph(`Lowest : ${day.min} °C`),
       makeParagraph(`Condition : ${day.condition}`),
     );
     futureResult.appendChild(div);
