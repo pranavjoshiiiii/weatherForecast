@@ -1,5 +1,6 @@
 const form = document.querySelector("form");
 const searchBar = document.querySelector("#city");
+const searchButton = document.querySelector(".submit-button");
 form.addEventListener("submit", handleSearch);
 
 async function handleSearch(event) {
@@ -18,7 +19,7 @@ async function handleSearch(event) {
       "Could not load locations. Check your connection and try again.",
     );
   } else {
-    renderLocation(data.results);
+    renderLocation(data);
   }
 }
 function clearWeather() {
@@ -47,7 +48,7 @@ async function getLocation(city) {
       `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=5&language=en&format=json`,
     );
     if (!response.ok) throw new Error("HTTP " + response.status);
-    return await response.json();
+    return (await response.json()).results ?? [];
   } catch (error) {
     console.error(error);
     return null;
